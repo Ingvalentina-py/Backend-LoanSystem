@@ -12,7 +12,16 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
-app.get("/health", (req, res) => res.json({ ok: true }));
+app.get("/", (req, res) => {
+  res.json({
+    ok: true,
+    message: "Backend funcionando correctamente",
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ ok: true });
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
