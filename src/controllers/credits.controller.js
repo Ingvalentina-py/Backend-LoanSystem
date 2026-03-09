@@ -61,10 +61,11 @@ async function createCredit(req, res) {
 async function listCredits(req, res) {
   try {
     const filter = scopeFilter(req.user);
-    const { status, clientId, q } = req.query;
+    const { status, q } = req.query;
 
-    if (status) filter.status = status;
-    if (clientId) filter.clientId = clientId;
+    if (status && status !== "all") {
+      filter.status = status;
+    }
 
     const items = await Credit.find(filter)
       .populate("clientId", "name documentId phone address")
