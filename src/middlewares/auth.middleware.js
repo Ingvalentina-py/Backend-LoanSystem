@@ -14,9 +14,12 @@ async function authRequired(req, res, next) {
 
     const user = await User.findById(decoded.sub).lean();
     if (!user) return res.status(401).json({ message: "Usuario no existe" });
-    if (!user.isActive) return res.status(403).json({ message: "Usuario deshabilitado" });
+    if (!user.isActive)
+      return res.status(403).json({ message: "Usuario deshabilitado" });
 
     req.user = user;
+    req.officeId = String(user.officeId);
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Token inválido o expirado" });

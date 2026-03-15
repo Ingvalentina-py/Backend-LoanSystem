@@ -1,9 +1,9 @@
 const Credit = require("../models/Credit");
 const Client = require("../models/Client");
 
-function scopeFilter(user) {
-  if (user.role === "admin") return {};
-  return { collectorId: user._id };
+function scopeFilter(user, officeId) {
+  if (user.role === "admin") return { officeId };
+  return { officeId, collectorId: user._id };
 }
 
 async function createCredit(req, res) {
@@ -21,9 +21,15 @@ async function createCredit(req, res) {
       return res.status(400).json({ message: "Faltan campos requeridos" });
     }
 
-    const client = await Client.findById(clientId).lean();
+    const client = await Client.findOne({
+      _id: clientId,
+      officeId: req.officeId,
+    }).lean();
+
     if (!client) {
-      return res.status(404).json({ message: "Cliente no existe" });
+      return res
+        .status(404)
+        .json({ message: "Cliente no existe en esta oficina" });
     }
 
     if (
@@ -43,6 +49,7 @@ async function createCredit(req, res) {
     const credit = await Credit.create({
       clientId,
       collectorId,
+      officeId: req.officeId,
       originDate: new Date(originDate),
       dueDate: new Date(dueDate),
       principalAmount: Number(principalAmount),
@@ -60,7 +67,7 @@ async function createCredit(req, res) {
 
 async function listCredits(req, res) {
   try {
-    const filter = scopeFilter(req.user);
+    const filter = scopeFilter(req.user, req.officeId);
     const { status, q } = req.query;
 
     if (status && status !== "all") {
@@ -99,7 +106,7 @@ async function markCreditAsPaid(req, res) {
 
     const credit = await Credit.findOne({
       _id: id,
-      ...scopeFilter(req.user),
+      ...scopeFilter(req.user, req.officeId),
     });
 
     if (!credit) {

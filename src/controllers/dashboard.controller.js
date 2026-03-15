@@ -5,6 +5,7 @@ const Credit = require("../models/Credit");
 async function getDashboard(req, res) {
   try {
     const user = req.user;
+    const officeId = req.officeId;
 
     if (user.role === "admin") {
       const [
@@ -14,11 +15,11 @@ async function getDashboard(req, res) {
         paidCredits,
         totalCredits,
       ] = await Promise.all([
-        User.countDocuments({ role: "collector", isActive: true }),
-        Client.countDocuments(),
-        Credit.countDocuments({ status: "pending" }),
-        Credit.countDocuments({ status: "paid" }),
-        Credit.countDocuments(),
+        User.countDocuments({ role: "collector", isActive: true, officeId }),
+        Client.countDocuments({ officeId }),
+        Credit.countDocuments({ status: "pending", officeId }),
+        Credit.countDocuments({ status: "paid", officeId }),
+        Credit.countDocuments({ officeId }),
       ]);
 
       return res.json({
@@ -33,7 +34,7 @@ async function getDashboard(req, res) {
       });
     }
 
-    const filter = { collectorId: user._id };
+    const filter = { collectorId: user._id, officeId };
 
     const [myClients, myPendingCredits, myPaidCredits, myTotalCredits] =
       await Promise.all([

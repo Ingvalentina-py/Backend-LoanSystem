@@ -4,21 +4,31 @@ const User = require("../models/User");
 async function createCollector(req, res) {
   const { name, email, phone, password } = req.body || {};
   if (!name || !email || !password) {
-    return res.status(400).json({ message: "name, email, password son requeridos" });
+    return res
+      .status(400)
+      .json({ message: "name, email, password son requeridos" });
   }
 
-  const exists = await User.findOne({ email: String(email).toLowerCase().trim() });
-  if (exists) return res.status(409).json({ message: "Email ya existe" });
+  const normalizedEmail = String(email).toLowerCase().trim();
+
+  const exists = await User.findOne({
+    email: normalizedEmail,
+    officeId: req.officeId,
+  });
+
+  if (exists)
+    return res.status(409).json({ message: "Email ya existe en esta oficina" });
 
   const passwordHash = await bcrypt.hash(password, 10);
 
   const collector = await User.create({
     name,
-    email: String(email).toLowerCase().trim(),
+    email: normalizedEmail,
     phone,
     passwordHash,
     role: "collector",
-    isActive: true
+    isActive: true,
+    officeId: req.officeId,
   });
 
   res.status(201).json({
@@ -27,12 +37,15 @@ async function createCollector(req, res) {
     email: collector.email,
     phone: collector.phone,
     role: collector.role,
-    isActive: collector.isActive
+    isActive: collector.isActive,
   });
 }
 
 async function listCollectors(req, res) {
-  const items = await User.find({ role: "collector" })
+  const items = await User.find({
+    role: "collector",
+    officeId: req.officeId,
+  })
     .select("_id name email phone isActive createdAt")
     .sort({ createdAt: -1 })
     .lean();
@@ -48,12 +61,13 @@ async function setCollectorActive(req, res) {
   }
 
   const updated = await User.findOneAndUpdate(
-    { _id: id, role: "collector" },
+    { _id: id, role: "collector", officeId: req.officeId },
     { isActive },
-    { new: true }
+    { new: true },
   ).select("_id name email isActive");
 
-  if (!updated) return res.status(404).json({ message: "Cobrador no encontrado" });
+  if (!updated)
+    return res.status(404).json({ message: "Cobrador no encontrado" });
   res.json(updated);
 }
 

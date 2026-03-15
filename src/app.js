@@ -7,6 +7,7 @@ const usersRoutes = require("./routes/users.routes");
 const clientsRoutes = require("./routes/clients.routes");
 const creditsRoutes = require("./routes/credits.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const officesRoutes = require("./routes/offices.routes");
 
 const app = express();
 
@@ -30,7 +31,6 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// Middleware global: asegura conexión antes de rutas API
 app.use("/api", async (req, res, next) => {
   try {
     await connectDB();
@@ -48,5 +48,6 @@ app.use("/api/users", usersRoutes);
 app.use("/api/clients", clientsRoutes);
 app.use("/api/credits", creditsRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/offices", officesRoutes);
 
 module.exports = app;

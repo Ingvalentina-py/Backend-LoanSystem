@@ -1,8 +1,8 @@
 const Client = require("../models/Client");
 
-function getCollectorFilter(user) {
-  if (user.role === "admin") return {};
-  return { collectorId: user._id };
+function getCollectorFilter(user, officeId) {
+  if (user.role === "admin") return { officeId };
+  return { officeId, collectorId: user._id };
 }
 
 async function createClient(req, res) {
@@ -28,6 +28,7 @@ async function createClient(req, res) {
       address,
       phone,
       collectorId,
+      officeId: req.officeId,
     });
 
     return res.status(201).json(client);
@@ -39,7 +40,7 @@ async function createClient(req, res) {
 
 async function listClients(req, res) {
   try {
-    const filter = getCollectorFilter(req.user);
+    const filter = getCollectorFilter(req.user, req.officeId);
     const { q } = req.query;
 
     if (q) {

@@ -27,6 +27,12 @@ const CreditSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    officeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Office",
+      required: true,
+    },
   },
   { timestamps: true },
 );

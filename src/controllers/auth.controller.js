@@ -1,20 +1,34 @@
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
+const Office = require("../models/Office");
 const { signToken } = require("../utils/token");
 
 async function login(req, res) {
   try {
-    const { email, password } = req.body || {};
+    const { officeId, email, password } = req.body || {};
 
-    if (!email || !password) {
+    if (!officeId || !email || !password) {
       return res.status(400).json({
-        message: "email y password son requeridos",
+        message: "officeId, email y password son requeridos",
+      });
+    }
+
+    const office = await Office.findOne({
+      _id: officeId,
+      isActive: true,
+    }).lean();
+    if (!office) {
+      return res.status(404).json({
+        message: "Oficina no encontrada",
       });
     }
 
     const normalizedEmail = String(email).toLowerCase().trim();
 
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await User.findOne({
+      email: normalizedEmail,
+      officeId,
+    });
 
     if (!user) {
       return res.status(401).json({
@@ -25,12 +39,6 @@ async function login(req, res) {
     if (!user.isActive) {
       return res.status(403).json({
         message: "Usuario deshabilitado",
-      });
-    }
-
-    if (!user.passwordHash) {
-      return res.status(500).json({
-        message: "Usuario mal configurado",
       });
     }
 
@@ -48,6 +56,7 @@ async function login(req, res) {
     const token = signToken({
       sub: user._id.toString(),
       role: user.role,
+      officeId: user.officeId.toString(),
     });
 
     return res.json({
@@ -57,6 +66,8 @@ async function login(req, res) {
         name: user.name,
         role: user.role,
         email: user.email,
+        officeId: user.officeId,
+        officeName: office.name,
       },
     });
   } catch (error) {
@@ -69,22 +80,37 @@ async function login(req, res) {
 
 async function registerAdmin(req, res) {
   try {
-    const { name, email, phone, password } = req.body || {};
+    const { officeName, officeCode, name, email, phone, password } =
+      req.body || {};
 
-    if (!name || !email || !password) {
+    if (!officeName || !name || !email || !password) {
       return res.status(400).json({
-        message: "name, email y password son requeridos",
+        message: "officeName, name, email y password son requeridos",
       });
     }
+
+    const code = String(officeCode || officeName)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
+    const existingOffice = await Office.findOne({ code });
+    if (existingOffice) {
+      return res.status(409).json({
+        message: "Ya existe una oficina con ese código",
+      });
+    }
+
+    const office = await Office.create({
+      name: String(officeName).trim(),
+      code,
+      isActive: true,
+    });
 
     const normalizedEmail = String(email).toLowerCase().trim();
-
-    const exists = await User.findOne({ email: normalizedEmail });
-    if (exists) {
-      return res.status(409).json({
-        message: "Ya existe un usuario con este correo",
-      });
-    }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -95,10 +121,16 @@ async function registerAdmin(req, res) {
       passwordHash,
       role: "admin",
       isActive: true,
+      officeId: office._id,
     });
 
     return res.status(201).json({
-      message: "Administrador creado correctamente",
+      message: "Oficina y administrador creados correctamente",
+      office: {
+        id: office._id,
+        name: office.name,
+        code: office.code,
+      },
       user: {
         id: admin._id,
         name: admin.name,
@@ -109,7 +141,7 @@ async function registerAdmin(req, res) {
   } catch (error) {
     console.error("registerAdmin error:", error);
     return res.status(500).json({
-      message: "Error interno al crear administrador",
+      message: "Error interno al crear oficina y administrador",
     });
   }
 }
