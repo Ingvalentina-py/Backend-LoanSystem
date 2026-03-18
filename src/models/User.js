@@ -7,13 +7,18 @@ const UserSchema = new mongoose.Schema(
     phone: { type: String, trim: true },
     passwordHash: { type: String, required: true },
 
-    role: { type: String, enum: ["admin", "collector"], required: true },
+    role: {
+      type: String,
+      enum: ["superadmin", "admin", "collector"],
+      required: true,
+    },
+
     isActive: { type: Boolean, default: true },
 
     officeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Office",
-      required: true,
+      default: null,
     },
 
     lastLoginAt: { type: Date },
@@ -21,6 +26,6 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-UserSchema.index({ email: 1, officeId: 1 }, { unique: true });
+UserSchema.index({ email: 1 }, { unique: true });
 
 module.exports = mongoose.model("User", UserSchema);

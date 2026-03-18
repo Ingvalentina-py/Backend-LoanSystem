@@ -13,12 +13,17 @@ async function authRequired(req, res, next) {
     const decoded = verifyToken(token);
 
     const user = await User.findById(decoded.sub).lean();
-    if (!user) return res.status(401).json({ message: "Usuario no existe" });
-    if (!user.isActive)
+
+    if (!user) {
+      return res.status(401).json({ message: "Usuario no existe" });
+    }
+
+    if (!user.isActive) {
       return res.status(403).json({ message: "Usuario deshabilitado" });
+    }
 
     req.user = user;
-    req.officeId = String(user.officeId);
+    req.officeId = user.officeId ? String(user.officeId) : null;
 
     next();
   } catch (err) {

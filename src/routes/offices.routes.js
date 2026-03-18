@@ -1,12 +1,16 @@
 const express = require("express");
+const { authRequired } = require("../middlewares/auth.middleware");
+const { requireRole } = require("../middlewares/role.middleware");
 const {
-  listPublicOffices,
-  createOffice,
+  listOffices,
+  createOfficeWithAdmin,
 } = require("../controllers/offices.controller");
 
 const router = express.Router();
 
-router.get("/public", listPublicOffices);
-router.post("/", createOffice);
+router.use(authRequired, requireRole("superadmin"));
+
+router.get("/", listOffices);
+router.post("/", createOfficeWithAdmin);
 
 module.exports = router;

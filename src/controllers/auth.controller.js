@@ -5,30 +5,17 @@ const { signToken } = require("../utils/token");
 
 async function login(req, res) {
   try {
-    const { officeId, email, password } = req.body || {};
+    const { email, password } = req.body || {};
 
-    if (!officeId || !email || !password) {
+    if (!email || !password) {
       return res.status(400).json({
-        message: "officeId, email y password son requeridos",
-      });
-    }
-
-    const office = await Office.findOne({
-      _id: officeId,
-      isActive: true,
-    }).lean();
-    if (!office) {
-      return res.status(404).json({
-        message: "Oficina no encontrada",
+        message: "email y password son requeridos",
       });
     }
 
     const normalizedEmail = String(email).toLowerCase().trim();
 
-    const user = await User.findOne({
-      email: normalizedEmail,
-      officeId,
-    });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(401).json({
@@ -50,13 +37,20 @@ async function login(req, res) {
       });
     }
 
+    let officeName = null;
+
+    if (user.officeId) {
+      const office = await Office.findById(user.officeId).lean();
+      officeName = office?.name || null;
+    }
+
     user.lastLoginAt = new Date();
     await user.save();
 
     const token = signToken({
       sub: user._id.toString(),
       role: user.role,
-      officeId: user.officeId.toString(),
+      officeId: user.officeId ? user.officeId.toString() : null,
     });
 
     return res.json({
@@ -66,8 +60,8 @@ async function login(req, res) {
         name: user.name,
         role: user.role,
         email: user.email,
-        officeId: user.officeId,
-        officeName: office.name,
+        officeId: user.officeId || null,
+        officeName,
       },
     });
   } catch (error) {
@@ -78,72 +72,4 @@ async function login(req, res) {
   }
 }
 
-async function registerAdmin(req, res) {
-  try {
-    const { officeName, officeCode, name, email, phone, password } =
-      req.body || {};
-
-    if (!officeName || !name || !email || !password) {
-      return res.status(400).json({
-        message: "officeName, name, email y password son requeridos",
-      });
-    }
-
-    const code = String(officeCode || officeName)
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "");
-
-    const existingOffice = await Office.findOne({ code });
-    if (existingOffice) {
-      return res.status(409).json({
-        message: "Ya existe una oficina con ese código",
-      });
-    }
-
-    const office = await Office.create({
-      name: String(officeName).trim(),
-      code,
-      isActive: true,
-    });
-
-    const normalizedEmail = String(email).toLowerCase().trim();
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const admin = await User.create({
-      name: String(name).trim(),
-      email: normalizedEmail,
-      phone: phone ? String(phone).trim() : "",
-      passwordHash,
-      role: "admin",
-      isActive: true,
-      officeId: office._id,
-    });
-
-    return res.status(201).json({
-      message: "Oficina y administrador creados correctamente",
-      office: {
-        id: office._id,
-        name: office.name,
-        code: office.code,
-      },
-      user: {
-        id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-      },
-    });
-  } catch (error) {
-    console.error("registerAdmin error:", error);
-    return res.status(500).json({
-      message: "Error interno al crear oficina y administrador",
-    });
-  }
-}
-
-module.exports = { login, registerAdmin };
+module.exports = { login };

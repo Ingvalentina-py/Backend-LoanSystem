@@ -1,11 +1,39 @@
 const User = require("../models/User");
 const Client = require("../models/Client");
 const Credit = require("../models/Credit");
+const Office = require("../models/Office");
 
 async function getDashboard(req, res) {
   try {
     const user = req.user;
     const officeId = req.officeId;
+
+    if (user.role === "superadmin") {
+      const [
+        totalOffices,
+        totalAdmins,
+        totalCollectors,
+        totalClients,
+        totalCredits,
+      ] = await Promise.all([
+        Office.countDocuments({ isActive: true }),
+        User.countDocuments({ role: "admin", isActive: true }),
+        User.countDocuments({ role: "collector", isActive: true }),
+        Client.countDocuments(),
+        Credit.countDocuments(),
+      ]);
+
+      return res.json({
+        role: "superadmin",
+        metrics: {
+          totalOffices,
+          totalAdmins,
+          totalCollectors,
+          totalClients,
+          totalCredits,
+        },
+      });
+    }
 
     if (user.role === "admin") {
       const [
