@@ -8,6 +8,7 @@ const clientsRoutes = require("./routes/clients.routes");
 const creditsRoutes = require("./routes/credits.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const officesRoutes = require("./routes/offices.routes");
+const telegramRoutes = require("./routes/telegram.routes");
 
 const app = express();
 
@@ -49,5 +50,6 @@ app.use("/api/clients", clientsRoutes);
 app.use("/api/credits", creditsRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/offices", officesRoutes);
+app.use("/api/telegram", telegramRoutes);
 
 module.exports = app;
